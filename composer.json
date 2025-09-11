@@ -1,0 +1,29 @@
+{
+  "name": "ocowe/eva",
+  "description": "Biblioteca de integração com o EVA AI para monitoramento, relatórios de erros e insights em tempo real.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Vinicius Santos",
+      "email": "viniciusath@hotmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "illuminate/support": "^10.0|^11.0",
+    "illuminate/mail": "^10.0|^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Eva\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Eva\\EvaServiceProvider"
+      ]
+    }
+  }
+}
