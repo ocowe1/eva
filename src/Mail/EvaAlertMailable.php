@@ -19,9 +19,9 @@ class EvaAlertMailable extends Mailable
     public function build()
     {
         $subject = $this->payload['title'] ?? '[EVA] Alerta de Erro';
-        $mail = $this->subject($subject)
-                    ->view('eva::emails.alert')
-                    ->with($this->payload);
+    $mail = $this->subject($subject)
+            ->view('eva::emails.alert')
+            ->with(['eva_payload' => $this->payload]);
 
         // Se houver configuração específica no payload ou config, aplicar como from
         if (!empty($this->payload['from'])) {

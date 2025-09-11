@@ -24,27 +24,27 @@ pre.stack { white-space:pre-wrap; font-size:12px; color:#374151; max-height:220p
     <div class="header">
       <div class="logo">EVA</div>
       <div>
-        <h1>{{ $title ?? '[EVA] Alerta' }}</h1>
-        <div class="meta">Módulo: {{ $module ?? 'N/A' }} • Arquivo: {{ basename($file ?? '') }}:{{ $line ?? '?' }}</div>
+        <h1>{{ $eva_payload['title'] ?? '[EVA] Alerta' }}</h1>
+        <div class="meta">Módulo: {{ $eva_payload['module'] ?? 'N/A' }} • Arquivo: {{ basename($eva_payload['file'] ?? '') }}:{{ $eva_payload['line'] ?? '?' }}</div>
       </div>
     </div>
 
     <div class="section">
       <div class="label">Erro / Exceção</div>
       <div class="value error">
-        <strong>{{ $class ?? '' }}</strong><br>
-        {{ $message ?? '' }}
+        <strong>{{ $eva_payload['class'] ?? '' }}</strong><br>
+        {{ $eva_payload['message'] ?? '' }}
       </div>
 
-      @if(!empty($suggestion))
+      @if(!empty($eva_payload['suggestion']))
       <div class="suggestion">
-        <strong>Sugestão automática:</strong> {{ $suggestion }}
+        <strong>Sugestão automática:</strong> {{ $eva_payload['suggestion'] }}
       </div>
       @endif
 
-      @if(!empty($stack))
+      @if(!empty($eva_payload['stack']))
       <div class="label" style="margin-top:12px">Stack trace</div>
-      <pre class="stack">{{ $stack }}</pre>
+      <pre class="stack">{{ $eva_payload['stack'] }}</pre>
       @endif
     </div>
 
