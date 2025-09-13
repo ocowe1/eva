@@ -27,55 +27,65 @@
         overflow: hidden;
     }
     
-    .header {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: #ffffff;
-        padding: 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
+  .header {
+    background: linear-gradient(90deg, #0f172a 0%, #111827 100%);
+    color: #ffffff;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+
+  .badge {
+    background: linear-gradient(135deg,#06b6d4,#4f46e5);
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-weight:700;
+    font-size:13px;
+    box-shadow: 0 6px 18px rgba(79,70,229,0.12);
+  }
+
+  .header-content h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.2px;
+  }
+
+  .meta { font-size:13px; color:#c7d2fe; }
     
-    .header-content h1 {
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
+  .content {
+    padding: 24px;
+  }
     
-    .meta {
-        font-size: 14px;
-        opacity: 0.9;
-        color: #e2e8f0;
-    }
+  .section {
+    margin-bottom: 20px;
+  }
     
-    .content {
-        padding: 24px;
-    }
-    
-    .section {
-        margin-bottom: 24px;
-    }
-    
-    .label {
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
-        margin-bottom: 8px;
-        color: #6b7280;
-    }
+  .label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    color: #64748b;
+  }
     
     .label.danger {
         color: #dc2626;
     }
     
-    .error-box {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #dc2626;
-    }
+  .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(17,24,39,0.04); border:1px solid #eef2ff }
+
+  .error-box {
+    background: linear-gradient(90deg, rgba(254,242,242,0.8), rgba(255,255,255,0.6));
+    border-radius: 8px;
+    padding: 14px;
+    border-left: 4px solid #ef4444;
+  }
     
     .error-class {
         font-weight: 600;
@@ -89,14 +99,14 @@
         font-size: 14px;
     }
     
-    .suggestion-box {
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #2563eb;
-        margin-top: 16px;
-    }
+  .suggestion-box {
+    background: linear-gradient(90deg, rgba(239,246,255,0.9), rgba(255,255,255,0.8));
+    border-radius: 8px;
+    padding: 14px;
+    border-left: 4px solid #2563eb;
+    margin-top: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  }
     
     .suggestion-title {
         font-weight: 600;
@@ -110,15 +120,15 @@
         font-size: 14px;
     }
     
-    .file-info {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-family: 'Monaco', 'Menlo', monospace;
-        font-size: 13px;
-        color: #475569;
-    }
+  .file-info {
+    background: #f8fafc;
+    border: 1px solid #e6eefc;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 13px;
+    color: #475569;
+  }
     
     .stack-container {
         background: #1e293b;
@@ -164,14 +174,12 @@
   .line-error .line-number { background: #fecaca; color: #991b1b; font-weight: 600; }
   .line-error .line-content { background: #fef2f2; color: #991b1b; }
     
-    .footer {
-        background: #f8fafc;
-        padding: 16px 24px;
-        border-top: 1px solid #e2e8f0;
-        text-align: center;
-        font-size: 12px;
-        color: #6b7280;
-    }
+  .footer {
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: #9ca3af;
+  }
     
     .timestamp {
         color: #9ca3af;
@@ -188,10 +196,21 @@
 <body>
   <div class="container">
     <div class="header">
-      <!--<div class="logo">EVA</div>-->
-      <div class="header-content">
-        <h1>{{ $eva_payload['title'] ?? '[EVA] Alerta' }}</h1>
-        <div class="meta">Módulo: {{ $eva_payload['module'] ?? 'N/A' }} • Arquivo: {{ basename($eva_payload['file'] ?? '') }}:{{ $eva_payload['line'] ?? '?' }}</div>
+      <div class="badge" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; font-size:16px; border-radius:12px;">EVA</div>
+      <div style="flex:1">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <div class="header-content">
+            <h1 style="margin:0">{{ $eva_payload['title'] ?? '[EVA] Alerta' }}</h1>
+            <div class="meta">{{ $eva_payload['module'] ?? 'Aplicação' }}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:999px; font-size:12px; color:#e6eefc">{{ date('d/m/Y H:i') }}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <div style="background:#0f172a;color:#c7d2fe;padding:6px 10px;border-radius:999px;font-size:12px">Módulo: {{ $eva_payload['module'] ?? 'N/A' }}</div>
+          <div style="background:#e6eefc;color:#334155;padding:6px 10px;border-radius:999px;font-size:12px">Arquivo: {{ basename($eva_payload['file'] ?? '') }}:{{ $eva_payload['line'] ?? '?' }}</div>
+        </div>
       </div>
     </div>
 
@@ -261,7 +280,7 @@
                     @php
                       $text = rtrim($content, "\n\r");
                       // escape
-                      $escaped = e($text);
+                      $escaped = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
                       // simple highlighting: strings, numbers and keywords
                       $patterns = [
                         // strings '...' or "..."

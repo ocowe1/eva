@@ -5,140 +5,145 @@ use Throwable;
 
 class Suggester
 {
-    public function suggest(Throwable $e): ?string
+    /**
+     * Gera uma sugestão textual baseada na exceção e em contexto opcional.
+     *
+     * @param Throwable $e
+     * @param array{file?:string, line?:int, stack?:string, code?:string} $context
+     * @return string|null
+     */
+    public function suggest(Throwable $e, array $context = []): ?string
     {
-        $msg = strtolower($e->getMessage());
+        $msg = strtolower($e->getMessage() ?? '');
         $class = strtolower(get_class($e));
 
         $hints = [];
 
-        // === Erros de variável/array ===
+        // quick helpers
+        $hasFile = !empty($context['file']) && file_exists($context['file']);
+        $filePath = $context['file'] ?? null;
+        $line = isset($context['line']) ? (int) $context['line'] : null;
+
+        // Try to read a small window of source around the error line to provide contextual hints
+        $codeWindow = null;
+        if (!empty($context['code']) && is_string($context['code'])) {
+            $codeWindow = $context['code'];
+        } elseif ($hasFile && $line !== null) {
+            try {
+                $lines = @file($filePath, FILE_IGNORE_NEW_LINES);
+                if (is_array($lines)) {
+                    $start = max(1, $line - 5);
+                    $end = min(count($lines), $line + 5);
+                    $slice = array_slice($lines, $start - 1, $end - $start + 1, true);
+                    $codeWindow = implode("\n", $slice);
+                }
+            } catch (\Throwable $_) {
+                $codeWindow = null;
+            }
+        }
+
+        // === Detect patterns in message/class ===
         if (str_contains($msg, 'undefined variable')) {
-            $hints[] = "Variável não definida: inicialize antes do uso ou cheque o escopo.";
+            $hints[] = "Variável não definida: inicialize antes do uso ou verifique o escopo. Se ocorrer em Blade, evite colisões com variáveis internas como \$message; prefira usar nomes exclusivos como `eva_payload`.";
         }
+
         if (str_contains($msg, 'undefined property') || str_contains($msg, 'trying to get property')) {
-            $hints[] = "Verifique se o objeto foi instanciado antes de acessar a propriedade.";
+            $hints[] = "Propriedade indefinida: verifique se o objeto foi instanciado (não é null) e debug com `dd()` ou logs para inspecionar o conteúdo.";
         }
+
         if (str_contains($msg, 'undefined index') || str_contains($msg, 'offset does not exist')) {
-            $hints[] = "Cheque se o índice existe no array com 'isset' ou 'array_key_exists'.";
+            $hints[] = "Índice inexistente em array: proteja com `isset()`/`array_key_exists()` ou use `data_get()`/`Arr::get()` para acesso seguro.";
         }
 
-        // === Classes / Autoload ===
-        if (str_contains($msg,'class') && str_contains($msg,'not found')) {
-            $hints[] = "Classe não encontrada: confira namespace e rode 'composer dump-autoload'.";
-        }
-        if (str_contains($msg, 'trait') && str_contains($msg,'not found')) {
-            $hints[] = "Trait não encontrada: confirme namespace e autoload.";
-        }
-        if (str_contains($msg,'interface') && str_contains($msg,'not found')) {
-            $hints[] = "Interface não encontrada: valide autoload e dependências.";
+        // === Blade / View collisions ===
+        if (str_contains($msg, 'htmlspecialchars') || str_contains($msg, 'htmlentities')) {
+            $hints[] = "Erro relacionado a escape HTML: verifique se está passando uma variável que não é string ou com caracteres inválidos; no Blade, use `{!! !!}` com cuidado ou garanta `e()`/`htmlspecialchars()` antes de renderizar.`";
         }
 
-        // === Funções / Métodos ===
+        if (str_contains($msg, 'syntax error') || str_contains($msg, 'parse error')) {
+            $hints[] = "Erro de sintaxe: rode `php -l` no arquivo indicado e revise chaves/parenteses e uso de short tags.";
+        }
+
+        // === Functions / helpers ===
         if (str_contains($msg, 'call to undefined function')) {
-            $hints[] = "Função inexistente: verifique se a extensão PHP está habilitada ou se a função existe.";
+            $hints[] = "Função inexistente: verifique se a função está definida, se há typo, ou se precisa habilitar uma extensão PHP. Em projetos Laravel, confirme se helpers estão carregados e `composer install` foi executado.";
         }
+
         if (str_contains($msg, 'call to a member function')) {
-            $hints[] = "Chamada em objeto null: certifique-se de que o objeto foi instanciado.";
-        }
-        if (str_contains($msg, 'argument')) {
-            $hints[] = "Quantidade de argumentos incorreta: ajuste parâmetros na chamada.";
+            // detect possible object null and provide possible root causes
+            $hints[] = "Chamada de método em variável null: verifique injeção/retorno da função. Use `is_null()`/`isset()` antes de chamar, ou cheque o fluxo que deveria instanciar o objeto.";
         }
 
-        // === Tipos ===
-        if (str_contains($msg, 'must be of type')) {
-            $hints[] = "Verifique o tipo declarado e converta antes de passar o valor.";
-        }
-        if (str_contains($msg, 'type error')) {
-            $hints[] = "Erro de tipo: ajuste a tipagem ou sanitize os dados antes.";
-        }
-
-        // === Banco de dados ===
-        if (str_contains($class, 'pdoexception') || str_contains($msg, 'sqlstate')) {
-            $hints[] = "Erro de banco: confira credenciais, query e parâmetros.";
-        }
-        if (str_contains($msg, 'syntax error at or near')) {
-            $hints[] = "Erro SQL: revise sintaxe da query, aspas e vírgulas.";
-        }
-        if (str_contains($msg, 'no such table')) {
-            $hints[] = "Tabela inexistente: rode migrations ou confira o nome.";
-        }
-        if (str_contains($msg, 'column not found')) {
-            $hints[] = "Coluna não existe: ajuste migrations ou query.";
-        }
-        if (str_contains($msg, 'duplicate entry')) {
-            $hints[] = "Violação de chave única: adicione validação antes de inserir.";
-        }
-        if (str_contains($msg, 'foreign key constraint')) {
-            $hints[] = "Erro de chave estrangeira: confira integridade de dados e ordem de inserts.";
-        }
-
-        // === Filesystem ===
-        if (str_contains($msg, 'no such file or directory')) {
-            $hints[] = "Arquivo/pasta inexistente: confira caminho ou permissões.";
-        }
-        if (str_contains($msg, 'permission denied')) {
-            $hints[] = "Erro de permissão: ajuste chmod/chown do arquivo/pasta.";
-        }
-        if (str_contains($msg, 'failed to open stream')) {
-            $hints[] = "Falha ao abrir arquivo: verifique path, permissões e se o arquivo existe.";
-        }
-
-        // === Rede / API ===
-        if (str_contains($msg,'connection refused')) {
-            $hints[] = "Conexão recusada: verifique se o serviço destino está ativo e porta correta.";
-        }
-        if (str_contains($msg,'could not resolve host')) {
-            $hints[] = "Erro DNS: confira nome do host ou conectividade de rede.";
-        }
-        if (str_contains($msg,'timeout')) {
-            $hints[] = "Timeout: aumente limite ou otimize a requisição.";
-        }
-
-        // === Laravel específicos ===
+        // === Common Laravel issues ===
         if (str_contains($msg, 'view') && str_contains($msg, 'not found')) {
-            $hints[] = "View não encontrada: confirme nome/namespace da view.";
+            $hints[] = "View não encontrada: confirme o nome/namespace (ex.: 'vendor.package.view'), veja `resources/views/vendor` se for publishable e rode `php artisan view:clear`.";
         }
+
         if (str_contains($msg, 'route') && str_contains($msg, 'not defined')) {
-            $hints[] = "Rota inexistente: confira web.php/api.php e nome do route().";
+            $hints[] = "Rota não definida: verifique `routes/web.php`/`routes/api.php`, nomes de rota e middleware que possam alterar group/namespace.";
         }
+
         if (str_contains($msg, 'target class') && str_contains($msg, 'does not exist')) {
-            $hints[] = "Binding de classe não existe: confira Service Providers.";
-        }
-        if (str_contains($msg, 'class') && str_contains($msg, 'does not exist')) {
-            $hints[] = "Classe referida no container não existe: ajuste namespace.";
-        }
-        if (str_contains($msg,'csrf token mismatch')) {
-            $hints[] = "Token CSRF inválido: confira formulários e sessão.";
-        }
-        if (str_contains($msg,'session store not set')) {
-            $hints[] = "Sessão não inicializada: configure driver de session no .env.";
-        }
-        if (str_contains($msg,'no application encryption key')) {
-            $hints[] = "App key não configurada: rode 'php artisan key:generate'.";
-        }
-        if (str_contains($msg,'access denied for user')) {
-            $hints[] = "Erro MySQL: credenciais incorretas no .env.";
-        }
-        if (str_contains($msg,'migrate') && str_contains($msg,'base table or view not found')) {
-            $hints[] = "Banco não migrado: rode 'php artisan migrate'.";
+            $hints[] = "Target class não existe: problema de binding/autowiring. Confira namespace, `composer dump-autoload` e bindings em Service Providers.";
         }
 
-        // === PHP básico ===
-        if (str_contains($msg,'syntax error') || str_contains($msg,'parse error')) {
-            $hints[] = "Erro de sintaxe: revise o arquivo com 'php -l'.";
-        }
-        if (str_contains($msg,'memory exhausted')) {
-            $hints[] = "Memória esgotada: aumente memory_limit ou otimize o código.";
-        }
-        if (str_contains($msg,'maximum execution time')) {
-            $hints[] = "Tempo máximo excedido: aumente max_execution_time ou use jobs assíncronos.";
+        if (str_contains($msg, 'csrf token mismatch')) {
+            $hints[] = "CSRF token mismatch: confirme se o form envia `_token` e se a sessão está funcionando (driver de sessão correto e cookies habilitados).";
         }
 
-        if (empty($hints)) {
-            return "Nenhuma sugestão automática específica. Revisar stack trace, reproduzir localmente e verificar dependências.";
+        // === Database / SQL ===
+        if (str_contains($class, 'pdoexception') || str_contains($msg, 'sqlstate')) {
+            $hints[] = "Erro de banco: revise query, bindings e credenciais. Para QueryException veja `getSql()` e `getBindings()` no catch para debugar a query real.";
         }
 
-        return implode(' ', $hints);
+        if (str_contains($msg, 'duplicate entry') || str_contains($msg, 'unique constraint') ) {
+            $hints[] = "Violação de unicidade: possível tentativa de inserir registro duplicado. Valide previamente com `exists()`/validação ou use `updateOrCreate()`.";
+        }
+
+        if (str_contains($msg, 'no such table') || str_contains($msg, 'base table or view not found')) {
+            $hints[] = "Tabela inexistente: execute migrations no ambiente correto (`php artisan migrate`) e confira configuração de conexões/hosts.";
+        }
+
+        // === Filesystem / Permissions ===
+        if (str_contains($msg, 'no such file or directory')) {
+            $hints[] = "Arquivo/pasta não encontrado: verifique path absoluto/relativo e permissões. Em ambientes containerizados valide volumes/mounts.";
+        }
+
+        if (str_contains($msg, 'permission denied')) {
+            $hints[] = "Permissão negada: ajuste permissões do arquivo/diretório ou usuário do processo (www-data/nginx).";
+        }
+
+        // === Network / HTTP ===
+        if (str_contains($msg,'connection refused') || str_contains($msg,'could not connect')) {
+            $hints[] = "Conexão recusada: verifique se o serviço remoto está ativo, porta e firewall. Teste com `curl`/`telnet` a partir do host.";
+        }
+
+        if (str_contains($msg,'could not resolve host')) {
+            $hints[] = "Erro DNS: verifique nome do host, /etc/hosts e resolvers do container/host.";
+        }
+
+        // === Specific patterns in code window (context-aware hints) ===
+        if ($codeWindow !== null) {
+            $lowerWindow = strtolower($codeWindow);
+            if (str_contains($lowerWindow, 'htmlspecialchars(') || str_contains($lowerWindow, 'htmlentities(')) {
+                $hints[] = "Detectado uso de `htmlspecialchars`/`htmlentities` no trecho: confirme os parâmetros (ENT_QUOTES, charset) e que o primeiro argumento é string.";
+            }
+            if (str_contains($lowerWindow, " e(") || str_contains($lowerWindow, " e(")) {
+                $hints[] = "Detectado uso do helper `e()` no template: em alguns contextos Blade esse helper pode colidir; use nomes de variáveis exclusivos para evitar conflito com variáveis internas.";
+            }
+            if (str_contains($lowerWindow, '\$message')) {
+                $hints[] = "Variável `\$message` encontrada no trecho: Blade/SwiftMailer usam essa variável internamente; renomeie a variável enviada para a view para evitar sobrescrita (ex.: `eva_payload`).";
+            }
+            if (str_contains($lowerWindow, 'file_put_contents') || str_contains($lowerWindow, 'fopen(')) {
+                $hints[] = "Operações de I/O detectadas: cheque permissões e caminhos absolutos relativos ao runtime.";
+            }
+        }
+
+        // === Fallbacks e dicas práticas ===
+        $hints[] = "Dica: reproduza localmente com dados mínimos, capture stack trace completo e logue o payload completo (sem dados sensíveis) para identificar origem exata.";
+
+        // Combined message
+        $message = implode(' ', array_unique($hints));
+        return $message ?: null;
     }
 }

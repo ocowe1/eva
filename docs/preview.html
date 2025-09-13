@@ -8,19 +8,25 @@
     * { margin:0; padding:0; box-sizing:border-box }
     body{ background:#f9fafb; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI', Roboto, Arial, sans-serif; padding:24px }
     .container{ max-width:720px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); overflow:hidden }
-    .header{ background:linear-gradient(135deg,#1e293b 0%,#334155 100%); color:#fff; padding:24px; }
-    .header h1{ margin:0; font-size:20px }
-    .meta{ color:#cbd5e1; margin-top:6px }
+  .header{ background:linear-gradient(135deg,#0b1220 0%,#172033 100%); color:#fff; padding:20px 24px; display:flex; align-items:center; gap:16px }
+  .header h1{ margin:0; font-size:18px }
+  .meta{ color:#cbd5e1; margin-top:6px; font-size:13px }
     .content{ padding:24px }
     .label{ font-size:12px; text-transform:uppercase; color:#6b7280; margin-bottom:8px }
     .error-box{ background:#fef2f2; border-left:4px solid #dc2626; padding:16px; border-radius:8px }
     .error-class{ color:#dc2626; font-weight:700 }
     .error-message{ color:#374151 }
     .suggestion-box{ background:#eff6ff; border-left:4px solid #2563eb; padding:16px; border-radius:8px; margin-top:12px }
-    .file-info{ background:#f8fafc; padding:12px; border-radius:8px; margin-top:12px; font-family:monospace }
-    .code-container{ margin-top:12px }
-    .code-header{ background:#f1f5f9; padding:8px 12px; color:#64748b }
-    .code-content{ background:#0f172a; color:#e2e8f0; padding:12px; font-family:monospace; max-height:220px; overflow:auto }
+  .file-info{ background:#f8fafc; padding:12px; border-radius:10px; margin-top:12px; font-family:monospace; border:1px solid #eef2ff }
+  .code-container{ margin-top:12px }
+  .code-header{ background:#0b1220; padding:8px 12px; color:#94a3b8; font-weight:600; border-radius:8px 8px 0 0 }
+  .code-content{ background:#071025; color:#e2e8f0; padding:12px; font-family:monospace; max-height:260px; overflow:auto; border-radius:0 0 8px 8px }
+  .line-number{ display:inline-block; width:48px; padding-right:8px; color:#94a3b8; user-select:none }
+  .line-error{ background:#fff1f2; color:#991b1b; display:inline-block; padding:0 4px; border-radius:4px }
+  .hljs { background: transparent; color: inherit; }
+  .hljs-keyword { color: #f59e0b; font-weight:700 }
+  .hljs-string { color: #f97316 }
+  .hljs-number { color: #34d399 }
     .line-number{ display:inline-block; width:48px; padding-right:8px; color:#94a3b8 }
     .line-error{ background:#fff1f2; color:#991b1b }
     .footer{ padding:12px; background:#f8fafc; text-align:center; color:#6b7280 }
@@ -50,16 +56,15 @@
     <div class="label">Trecho do Código</div>
     <div class="code-container">
       <div class="code-header">Contexto ao redor da linha 42</div>
-      <div class="code-content">
-<pre style="margin:0"><span class="line-number">38</span> public function store(Request $request)
-<span class="line-number">39</span> {
-<span class="line-number">40</span>     $validated = $request->validate([
-<span class="line-number">41</span>         'email' => 'required|email',
-<span class="line-number">42</span>     <span class="line-error">$user = User::create($validated);</span>
-<span class="line-number">43</span>
-<span class="line-number">44</span>     return response()->json($user, 201);
-<span class="line-number">45</span> }
-</pre>
+    <div class="code-content">
+  <pre style="margin:0"><code class="language-php hljs"><span class="line-number">38</span> public function store(Request $request)
+  <span class="line-number">39</span> {
+  <span class="line-number">40</span>     $validated = $request->validate([
+  <span class="line-number">41</span>         'email' => 'required|email',
+  <span class="line-number">42</span>     <span class="line-error">$user = User::create($validated);</span>
+  <span class="line-number">43</span>
+  <span class="line-number">44</span>     return response()->json($user, 201);
+  <span class="line-number">45</span> }</code></pre>
       </div>
     </div>
 
@@ -68,3 +73,6 @@
 </div>
 </body>
 </html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/php.min.js"></script>
+<script>hljs.highlightAll();</script>

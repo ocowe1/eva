@@ -1,6 +1,6 @@
 {
   "name": "ocowe1/eva",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Biblioteca de integração com o EVA AI para monitoramento, relatórios de erros e insights em tempo real.",
   "type": "library",
   "license": "MIT",
