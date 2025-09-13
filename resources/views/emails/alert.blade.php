@@ -211,7 +211,47 @@
         <div class="code-container">
           <div class="code-header">Contexto ao redor da linha {{ $eva_payload['line'] ?? '?' }}</div>
           <div class="code-content">
-            <pre class="stack-trace">{{ $eva_payload['stack'] }}</pre>
+            @php
+              $errorLine = isset($eva_payload['line']) ? (int) $eva_payload['line'] : null;
+              $rawCode = null;
+              if (!empty($eva_payload['code']) && is_string($eva_payload['code'])) {
+                  $rawCode = $eva_payload['code'];
+              } elseif (!empty($eva_payload['file']) && file_exists($eva_payload['file'])) {
+                  // tentar ler o arquivo do filesystem (executado no servidor)
+                  try {
+                      $rawCode = implode("\n", file($eva_payload['file']));
+                  } catch (\Throwable $ex) {
+                      $rawCode = null;
+                  }
+              }
+
+              $codeLines = [];
+              if ($rawCode !== null) {
+                  $lines = preg_split('/\r\n|\n|\r/', $rawCode);
+                  $total = count($lines);
+                  if ($errorLine === null) {
+                      $start = max(1, 1);
+                  } else {
+                      $start = max(1, $errorLine - 5);
+                  }
+                  $end = min($total, ($errorLine ?: 1) + 4);
+                  for ($i = $start; $i <= $end; $i++) {
+                      $codeLines[$i] = $lines[$i-1] ?? '';
+                  }
+              }
+            @endphp
+
+            @if(!empty($codeLines))
+              @foreach($codeLines as $ln => $content)
+                @php $isErrorLine = ($errorLine !== null && $ln == $errorLine); @endphp
+                <div class="code-line {{ $isErrorLine ? 'line-error' : '' }}">
+                  <div class="line-number">{{ $ln }}</div>
+                  <div class="line-content">{{ rtrim($content, "\n\r") }}</div>
+                </div>
+              @endforeach
+            @else
+              <pre class="stack-trace">{{ $eva_payload['stack'] ?? 'Código não disponível' }}</pre>
+            @endif
           </div>
         </div>
       </div>
