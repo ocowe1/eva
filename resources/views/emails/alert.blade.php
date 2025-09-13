@@ -152,6 +152,17 @@
         white-space: pre-wrap;
         word-break: break-word;
     }
+
+  /* Syntax highlight helpers */
+  .kw { color: #f59e0b; font-weight:600; }
+  .str { color: #f97316; }
+  .num { color: #34d399; }
+  .code-line { display:flex; }
+  .line-number { background: #f8fafc; color: #94a3b8; padding: 4px 12px; text-align: right; min-width: 50px; border-right: 1px solid #e2e8f0; user-select: none; }
+  .line-content { flex:1; padding:4px 12px; font-family: 'Monaco', 'Menlo', monospace; font-size:13px; white-space:pre-wrap; }
+  .line-error { background: #fef2f2; border-left: 4px solid #dc2626; }
+  .line-error .line-number { background: #fecaca; color: #991b1b; font-weight: 600; }
+  .line-error .line-content { background: #fef2f2; color: #991b1b; }
     
     .footer {
         background: #f8fafc;
@@ -246,7 +257,29 @@
                 @php $isErrorLine = ($errorLine !== null && $ln == $errorLine); @endphp
                 <div class="code-line {{ $isErrorLine ? 'line-error' : '' }}">
                   <div class="line-number">{{ $ln }}</div>
-                  <div class="line-content">{{ rtrim($content, "\n\r") }}</div>
+                  <div class="line-content">
+                    @php
+                      $text = rtrim($content, "\n\r");
+                      // escape
+                      $escaped = e($text);
+                      // simple highlighting: strings, numbers and keywords
+                      $patterns = [
+                        // strings '...' or "..."
+                        '/(&#039;.*?&#039;|&quot;.*?&quot;)/i',
+                        // numbers
+                        '/\b(\d+)\b/',
+                        // keywords (php/js common)
+                        '/\b(function|return|if|else|foreach|for|while|switch|case|break|class|new|throw|try|catch|public|protected|private|static|const|var|let|echo)\b/i'
+                      ];
+                      $replacements = [
+                        '<span class="str">$1</span>',
+                        '<span class="num">$1</span>',
+                        '<span class="kw">$1</span>'
+                      ];
+                      $highlighted = preg_replace($patterns, $replacements, $escaped);
+                    @endphp
+                    {!! $highlighted !!}
+                  </div>
                 </div>
               @endforeach
             @else
