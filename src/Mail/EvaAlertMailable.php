@@ -34,6 +34,34 @@ class EvaAlertMailable extends Mailable
             }
         }
 
+        // Tentativa de notificar via Teams se estiver configurado (não deve quebrar envio de e-mail)
+        try {
+            if (function_exists('config') && config('eva.teams.enabled')) {
+                \Eva\Notifications\TeamsNotifier::send($this->payload);
+            }
+        } catch (\Throwable $_) {
+            // ignorar falhas no envio para Teams
+        }
+
+        // Notificar via Slack (webhook/bot) se habilitado
+        try {
+            if (function_exists('config') && config('eva.slack.enabled')) {
+                if (function_exists('config') && config('eva.sync_send')) {
+                    // envio síncrono
+                    \Eva\Notifications\SlackNotifier::send($this->payload);
+                } else {
+                    // enfileirar para evitar blocking
+                    if (class_exists('\Eva\Jobs\SendSlackNotification')) {
+                        \Eva\Jobs\SendSlackNotification::dispatch($this->payload);
+                    } else {
+                        \Eva\Notifications\SlackNotifier::send($this->payload);
+                    }
+                }
+            }
+        } catch (\Throwable $_) {
+            // ignorar falhas na notificação Slack
+        }
+
         return $mail;
     }
 }

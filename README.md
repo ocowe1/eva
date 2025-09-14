@@ -78,3 +78,43 @@ Pull requests são bem-vindos! Para reportar bugs ou sugerir melhorias, abra uma
 ## Licença
 
 MIT
+
+## Microsoft Teams (Incoming Webhook)
+
+Para enviar alertas também para um canal do Microsoft Teams, configure as variáveis de ambiente no seu `.env`:
+
+```dotenv
+EVA_TEAMS_ENABLED=true
+EVA_TEAMS_WEBHOOK=https://outlook.office.com/webhook/....
+EVA_TEAMS_TITLE="EVA Alert"
+```
+
+Quando `EVA_TEAMS_ENABLED` estiver `true` e a webhook definida, o pacote tentará enviar um cartão simples para o Teams com o resumo do erro e a sugestão automática.
+
+Observação: por padrão o pacote usa `file_get_contents` para enviar o POST JSON; se sua aplicação usa `guzzlehttp/guzzle` (recomendado) ele fará uso do Guzzle quando disponível.
+
+## Slack (Incoming Webhook / Bot)
+
+Para enviar alertas ao Slack usamos Incoming Webhooks (URL no formato `https://hooks.slack.com/services/...`).
+
+Adicione no seu `.env`:
+
+```dotenv
+EVA_SLACK_ENABLED=true
+EVA_SLACK_WEBHOOK=https://hooks.slack.com/services/AAA/BBB/CCC
+EVA_SLACK_USERNAME=EVA
+EVA_SLACK_ICON=:robot_face:
+EVA_SLACK_DEDUPE_TTL=300
+```
+
+O pacote inclui um `SlackNotifier` que formata mensagens com Blocks (título, resumo, campos e snippet) e um Job `SendSlackNotification` para enfileirar envios (recomendado). Por padrão o envio é assíncrono quando `eva.sync_send` estiver `false`.
+
+Teste rápido com curl (webhook):
+
+```bash
+curl -X POST -H 'Content-type: application/json' \
+    --data '{"text":"Teste: webhook do Slack configurado com sucesso"}' \
+    "https://hooks.slack.com/services/AAA/BBB/CCC"
+```
+
+Recomenda-se usar filas + Redis para dedupe e retry em produção.

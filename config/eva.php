@@ -37,4 +37,23 @@ return [
 
     // Nível de detalhe do stack trace: 'minimal' | 'normal' | 'full'
     'detail_level' => env('EVA_DETAIL_LEVEL', 'normal'),
+    // Notificações via Microsoft Teams (Webhook)
+    'teams' => [
+        // Habilitar envio para Teams
+        'enabled' => (bool) env('EVA_TEAMS_ENABLED', false),
+        // Webhook URL do canal do Teams
+        'webhook_url' => env('EVA_TEAMS_WEBHOOK', null),
+        // Título do cartão
+        'title' => env('EVA_TEAMS_TITLE', 'EVA Alert'),
+    ],
+    // Notificações via Slack (Incoming Webhook ou Bot)
+    'slack' => [
+        'enabled' => (bool) env('EVA_SLACK_ENABLED', false),
+        // Incoming Webhook URL (hooks.slack.com/services/...)
+        'webhook_url' => env('EVA_SLACK_WEBHOOK', null),
+        'username' => env('EVA_SLACK_USERNAME', 'EVA'),
+        'icon_emoji' => env('EVA_SLACK_ICON', ':robot_face:'),
+        // Deduplication TTL (segundos) para evitar spam
+        'dedupe_ttl' => (int) env('EVA_SLACK_DEDUPE_TTL', 300),
+    ],
 ];
