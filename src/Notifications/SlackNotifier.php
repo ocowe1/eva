@@ -17,8 +17,10 @@ class SlackNotifier
             }
 
             $webhook = $cfg['webhook_url'] ?? null;
-            $username = $cfg['username'] ?? 'EVA';
-            $icon = $cfg['icon_emoji'] ?? ':robot_face:';
+            // default username and icon; allow icon_url or icon_emoji from config
+            $username = $cfg['username'] ?? 'Eva';
+            $iconUrl = $cfg['icon_url'] ?? null;
+            $iconEmoji = $cfg['icon_emoji'] ?? ':robot_face:';
             $dedupeTtl = isset($cfg['dedupe_ttl']) ? (int)$cfg['dedupe_ttl'] : 300;
 
             // fingerprint para dedupe
@@ -27,11 +29,12 @@ class SlackNotifier
                 return true; // já enviado recentemente
             }
 
-            $message = self::buildMessage($payload, $username, $icon);
+            $message = self::buildMessage($payload, $username, $iconUrl ?? $iconEmoji);
 
             $sent = false;
             if (!empty($webhook)) {
-                $sent = self::sendWithWebhook($webhook, $message);
+                // pass through username and icon info
+                $sent = self::sendWithWebhook($webhook, $message, $username, $iconUrl, $iconEmoji);
             }
 
             if ($sent && $dedupeTtl > 0 && function_exists('cache')) {
@@ -60,7 +63,8 @@ class SlackNotifier
         $stack = $p['stack'] ?? null;
         $code = $p['code_snippet'] ?? ($p['code'] ?? null);
         $env = function_exists('config') ? (config('app.env') ?? '') : '';
-        $timestamp = date('Y-m-d H:i:s');
+    $timestamp = date('Y-m-d H:i:s');
+    $unixTs = time();
 
         $short = trim($exceptionClass . ': ' . $message);
 
@@ -84,12 +88,14 @@ class SlackNotifier
         ];
 
         // Fields: class, file, line, environment, time
-        $fields = [];
+    $fields = [];
         if ($exceptionClass) $fields[] = ['type' => 'mrkdwn', 'text' => "*Classe:* `{$exceptionClass}`"];
         if ($file) $fields[] = ['type' => 'mrkdwn', 'text' => "*Arquivo:* `{$file}`"];
         if ($line) $fields[] = ['type' => 'mrkdwn', 'text' => "*Linha:* {$line}"];
-        if ($env) $fields[] = ['type' => 'mrkdwn', 'text' => "*Env:* {$env}"];
-        $fields[] = ['type' => 'mrkdwn', 'text' => "*Hora:* {$timestamp}"];
+    if ($env) $fields[] = ['type' => 'mrkdwn', 'text' => "*Env:* {$env}"];
+    // Use Slack date formatting so clients render locale-aware dates
+    $slackDate = "<!date^{$unixTs}^{date_short_pretty} at {time}|{$timestamp}>";
+    $fields[] = ['type' => 'mrkdwn', 'text' => "*Hora:* {$slackDate}"];
 
         if (!empty($fields)) {
             $blocks[] = ['type' => 'section', 'fields' => $fields];
@@ -142,7 +148,7 @@ class SlackNotifier
 
         // Context footer with small info
         $contextItems = [];
-        $contextItems[] = ['type' => 'mrkdwn', 'text' => "*EVA* • {$timestamp}"];
+    $contextItems[] = ['type' => 'mrkdwn', 'text' => "*Eva* • {$slackDate}"];
         if (!empty($p['host'])) {
             $contextItems[] = ['type' => 'mrkdwn', 'text' => "Host: {$p['host']}"];
         }
@@ -161,12 +167,30 @@ class SlackNotifier
 
         $fallback = implode("\n", $fallbackParts);
 
-        return ['text' => $fallback, 'blocks' => $blocks, 'username' => $username, 'icon_emoji' => $icon];
+        // include username and icon (icon may be an url or emoji)
+        $out = ['text' => $fallback, 'blocks' => $blocks, 'username' => $username];
+        // if icon looks like a URL, pass as icon_url, otherwise icon_emoji
+        if (filter_var($icon, FILTER_VALIDATE_URL)) {
+            $out['icon_url'] = $icon;
+        } else {
+            $out['icon_emoji'] = $icon;
+        }
+        return $out;
     }
 
-    protected static function sendWithWebhook(string $url, array $message): bool
+    protected static function sendWithWebhook(string $url, array $message, string $username = null, string $iconUrl = null, string $iconEmoji = null): bool
     {
-        $body = json_encode(['text' => $message['text'], 'blocks' => $message['blocks']]);
+        $bodyArr = ['text' => $message['text'], 'blocks' => $message['blocks']];
+        // allow override from message array
+        if (!empty($message['username'])) $bodyArr['username'] = $message['username'];
+        if (!empty($message['icon_url'])) $bodyArr['icon_url'] = $message['icon_url'];
+        if (!empty($message['icon_emoji'])) $bodyArr['icon_emoji'] = $message['icon_emoji'];
+        // fallback to passed params
+        if (empty($bodyArr['username']) && !empty($username)) $bodyArr['username'] = $username;
+        if (empty($bodyArr['icon_url']) && !empty($iconUrl)) $bodyArr['icon_url'] = $iconUrl;
+        if (empty($bodyArr['icon_emoji']) && !empty($iconEmoji)) $bodyArr['icon_emoji'] = $iconEmoji;
+
+        $body = json_encode($bodyArr);
         if (class_exists('\GuzzleHttp\Client')) {
             try {
                 $client = new \GuzzleHttp\Client(['timeout' => 5]);

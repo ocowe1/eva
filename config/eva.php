@@ -52,7 +52,9 @@ return [
         // Incoming Webhook URL (hooks.slack.com/services/...)
         'webhook_url' => env('EVA_SLACK_WEBHOOK', null),
         'username' => env('EVA_SLACK_USERNAME', 'EVA'),
-        'icon_emoji' => env('EVA_SLACK_ICON', ':robot_face:'),
+            // allow an URL for a custom icon (preferred) or an emoji fallback
+            'icon_url' => env('EVA_SLACK_ICON_URL', null),
+            'icon_emoji' => env('EVA_SLACK_ICON_EMOJI', ':robot_face:'),
         // Deduplication TTL (segundos) para evitar spam
         'dedupe_ttl' => (int) env('EVA_SLACK_DEDUPE_TTL', 300),
     ],

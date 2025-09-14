@@ -93,7 +93,7 @@ Quando `EVA_TEAMS_ENABLED` estiver `true` e a webhook definida, o pacote tentar�
 
 Observação: por padrão o pacote usa `file_get_contents` para enviar o POST JSON; se sua aplicação usa `guzzlehttp/guzzle` (recomendado) ele fará uso do Guzzle quando disponível.
 
-## Slack (Incoming Webhook / Bot)
+## Slack (Incoming Webhook)
 
 Para enviar alertas ao Slack usamos Incoming Webhooks (URL no formato `https://hooks.slack.com/services/...`).
 
@@ -102,8 +102,10 @@ Adicione no seu `.env`:
 ```dotenv
 EVA_SLACK_ENABLED=true
 EVA_SLACK_WEBHOOK=https://hooks.slack.com/services/AAA/BBB/CCC
-EVA_SLACK_USERNAME=EVA
-EVA_SLACK_ICON=:robot_face:
+EVA_SLACK_USERNAME=Eva
+EVA_SLACK_ICON_EMOJI=":robot_face:"
+# Opcional: URL pública para um SVG/PNG personalizado (ex.: raw GitHub URL ou CDN)
+EVA_SLACK_ICON_URL=https://raw.githubusercontent.com/ocowe1/eva/master/resources/assets/eva-icon.svg
 EVA_SLACK_DEDUPE_TTL=300
 ```
 
@@ -116,5 +118,9 @@ curl -X POST -H 'Content-type: application/json' \
     --data '{"text":"Teste: webhook do Slack configurado com sucesso"}' \
     "https://hooks.slack.com/services/AAA/BBB/CCC"
 ```
+
+Notas sobre o ícone personalizado:
+- Hospede o SVG em um local público (GitHub raw, CDN, S3) e aponte `EVA_SLACK_ICON_URL` para esse recurso.
+- O projeto inclui um ícone `resources/assets/eva-icon.svg` que você pode hospedar e usar.
 
 Recomenda-se usar filas + Redis para dedupe e retry em produção.

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Modern 'E' logo for Eva package - simple, single-color SVG -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="512" height="512">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0%" stop-color="#d6b006" />
+      <stop offset="100%" stop-color="#d6b006" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="20" fill="#0f1724" />
+  <g transform="translate(18,20)">
+    <!-- stylized E built from three bars with rounded caps -->
+    <rect x="0" y="0" width="70" height="14" rx="6" fill="url(#g)" />
+    <rect x="0" y="28" width="52" height="14" rx="6" fill="url(#g)" />
+    <rect x="0" y="56" width="70" height="14" rx="6" fill="url(#g)" />
+  </g>
+</svg>

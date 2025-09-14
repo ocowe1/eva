@@ -8,6 +8,22 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 
 use Eva\Notifications\SlackNotifier;
 
+// If we're running outside Laravel, provide a minimal `config()` helper so
+// SlackNotifier::send() can read `eva.slack` from env var `EVA_SLACK_WEBHOOK`.
+if (!function_exists('config')) {
+    function config($key = null, $default = null)
+    {
+        if ($key === 'eva.slack') {
+            $webhook = getenv('EVA_SLACK_WEBHOOK') ?: null;
+            return ['enabled' => !empty($webhook), 'webhook_url' => $webhook];
+        }
+        if ($key === 'app.env') {
+            return getenv('APP_ENV') ?: 'local';
+        }
+        return $default;
+    }
+}
+
 $payload = [
     'title' => 'Teste de Integração - EVA',
     'module' => 'Backend',
