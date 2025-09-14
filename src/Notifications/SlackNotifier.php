@@ -49,31 +49,119 @@ class SlackNotifier
 
     protected static function buildMessage(array $p, string $username, string $icon): array
     {
-        $title = ($p['module'] ?? 'App') . ' - ' . ($p['title'] ?? 'Erro');
-        $short = ($p['class'] ?? '') . ': ' . ($p['message'] ?? '');
-        $fields = [];
-        if (!empty($p['file'])) {
-            $fields[] = ['type' => 'mrkdwn', 'text' => "*Arquivo:* `{$p['file']}`:{$p['line']}"];
-        }
-        if (!empty($p['suggestion'])) {
-            $fields[] = ['type' => 'mrkdwn', 'text' => "*Sugestão:* {$p['suggestion']}"];
-        }
+        // Helper to safely get values
+        $module = $p['module'] ?? 'App';
+        $titleText = $p['title'] ?? 'Erro detectado';
+        $exceptionClass = $p['class'] ?? '';
+        $message = $p['message'] ?? '';
+        $file = $p['file'] ?? null;
+        $line = $p['line'] ?? null;
+        $suggestion = $p['suggestion'] ?? null;
+        $stack = $p['stack'] ?? null;
+        $code = $p['code_snippet'] ?? ($p['code'] ?? null);
+        $env = function_exists('config') ? (config('app.env') ?? '') : '';
+        $timestamp = date('Y-m-d H:i:s');
 
-        // Blocks format (rich)
+        $short = trim($exceptionClass . ': ' . $message);
+
+        // Truncate helpers
+        $truncate = function ($text, $max = 700) {
+            if ($text === null) return null;
+            $text = trim((string)$text);
+            if (mb_strlen($text) <= $max) return $text;
+            return mb_substr($text, 0, $max) . "...";
+        };
+
         $blocks = [];
-        $blocks[] = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => "*{$title}*\n{$short}"]];
+
+        // Header with emoji and title
+        $blocks[] = [
+            'type' => 'section',
+            'text' => [
+                'type' => 'mrkdwn',
+                'text' => ":warning: *{$module}* — *{$titleText}*\n*{$short}*",
+            ],
+        ];
+
+        // Fields: class, file, line, environment, time
+        $fields = [];
+        if ($exceptionClass) $fields[] = ['type' => 'mrkdwn', 'text' => "*Classe:* `{$exceptionClass}`"];
+        if ($file) $fields[] = ['type' => 'mrkdwn', 'text' => "*Arquivo:* `{$file}`"];
+        if ($line) $fields[] = ['type' => 'mrkdwn', 'text' => "*Linha:* {$line}"];
+        if ($env) $fields[] = ['type' => 'mrkdwn', 'text' => "*Env:* {$env}"];
+        $fields[] = ['type' => 'mrkdwn', 'text' => "*Hora:* {$timestamp}"];
+
         if (!empty($fields)) {
             $blocks[] = ['type' => 'section', 'fields' => $fields];
         }
-        // optional code snippet
-        if (!empty($p['code_snippet'])) {
-            $blocks[] = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => "```php\n{$p['code_snippet']}\n```"]];
-        }
-        // footer with environment/time
-        $env = function_exists('config') ? (config('app.env') ?? '') : '';
-        $blocks[] = ['type' => 'context', 'elements' => [['type' => 'mrkdwn', 'text' => "{$env} • " . date('Y-m-d H:i:s')]]];
 
-        return ['text' => "{$title} - {$short}", 'blocks' => $blocks, 'username' => $username, 'icon_emoji' => $icon];
+        // Divider
+        $blocks[] = ['type' => 'divider'];
+
+        // Suggestion block (if any)
+        if ($suggestion) {
+            $blocks[] = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => "*Sugestão Automática:*\n{$truncate($suggestion, 900)}"]];
+        }
+
+        // Code snippet (truncate to reasonable length)
+        if ($code) {
+            $snippet = $truncate($code, 800);
+            // ensure triple backticks inside code are escaped
+            $snippet = str_replace('```', "`\`\`\`", $snippet);
+            $blocks[] = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => "```php\n{$snippet}\n```"]];
+        }
+
+        // Stack trace preview (first N lines)
+        if ($stack) {
+            $lines = preg_split('/\r\n|\n|\r/', (string)$stack);
+            $preview = array_slice($lines, 0, 12);
+            $previewText = implode("\n", $preview);
+            $previewText = $truncate($previewText, 1200);
+            $blocks[] = ['type' => 'section', 'text' => ['type' => 'mrkdwn', 'text' => "*Stack (preview):*\n```\n{$previewText}\n```"]];
+        }
+
+        // Actions: optional buttons if URLs provided
+        $actions = [];
+        if (!empty($p['view_url'])) {
+            $actions[] = [
+                'type' => 'button',
+                'text' => ['type' => 'plain_text', 'text' => 'Ver (View)'],
+                'url' => $p['view_url'],
+            ];
+        }
+        if (!empty($p['issue_url'])) {
+            $actions[] = [
+                'type' => 'button',
+                'text' => ['type' => 'plain_text', 'text' => 'Criar Issue'],
+                'url' => $p['issue_url'],
+            ];
+        }
+        if (!empty($actions)) {
+            $blocks[] = ['type' => 'actions', 'elements' => $actions];
+        }
+
+        // Context footer with small info
+        $contextItems = [];
+        $contextItems[] = ['type' => 'mrkdwn', 'text' => "*EVA* • {$timestamp}"];
+        if (!empty($p['host'])) {
+            $contextItems[] = ['type' => 'mrkdwn', 'text' => "Host: {$p['host']}"];
+        }
+        $blocks[] = ['type' => 'context', 'elements' => $contextItems];
+
+        // Fallback text containing all info (plain)
+        $fallbackParts = [
+            "Title: {$titleText}",
+            "Module: {$module}",
+            "Class: {$exceptionClass}",
+            "Message: {$message}",
+        ];
+        if ($file) $fallbackParts[] = "File: {$file}:{$line}";
+        if ($suggestion) $fallbackParts[] = "Suggestion: {$suggestion}";
+        if ($stack) $fallbackParts[] = "Stack: " . (is_string($stack) ? substr($stack, 0, 2000) : '');
+
+        $fallback = implode("\n", $fallbackParts);
+
+        return ['text' => $fallback, 'blocks' => $blocks, 'username' => $username, 'icon_emoji' => $icon];
     }
 
     protected static function sendWithWebhook(string $url, array $message): bool
