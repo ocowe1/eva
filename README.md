@@ -93,6 +93,10 @@ Quando `EVA_TEAMS_ENABLED` estiver `true` e a webhook definida, o pacote tentar�
 
 Observação: por padrão o pacote usa `file_get_contents` para enviar o POST JSON; se sua aplicação usa `guzzlehttp/guzzle` (recomendado) ele fará uso do Guzzle quando disponível.
 
+Ícone para Teams:
+- O Teams também pode usar o mesmo SVG usado no Slack. Defina `EVA_TEAMS_ICON_URL` apontando para o mesmo recurso público do `EVA_SLACK_ICON_URL` (ex.: raw GitHub URL ou CDN).
+- O projeto inclui `resources/assets/eva-icon.svg` com a cor principal `#d6b006`. Use este único ícone para Slack e Teams (defina `EVA_SLACK_ICON_URL` e `EVA_TEAMS_ICON_URL` apontando para o mesmo recurso público).
+
 ## Slack (Incoming Webhook)
 
 Para enviar alertas ao Slack usamos Incoming Webhooks (URL no formato `https://hooks.slack.com/services/...`).

@@ -1,17 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Modern 'E' logo for Eva package - simple, single-color SVG -->
+<!-- EVA universal icon - minimal abstract mark in primary color #d6b006 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="512" height="512">
-  <defs>
-    <linearGradient id="g" x1="0" x2="1">
-      <stop offset="0%" stop-color="#d6b006" />
-      <stop offset="100%" stop-color="#d6b006" />
-    </linearGradient>
-  </defs>
-  <rect width="120" height="120" rx="20" fill="#0f1724" />
-  <g transform="translate(18,20)">
-    <!-- stylized E built from three bars with rounded caps -->
-    <rect x="0" y="0" width="70" height="14" rx="6" fill="url(#g)" />
-    <rect x="0" y="28" width="52" height="14" rx="6" fill="url(#g)" />
-    <rect x="0" y="56" width="70" height="14" rx="6" fill="url(#g)" />
+  <rect width="120" height="120" rx="20" fill="#07101a" />
+  <g transform="translate(60,60)">
+    <!-- outer ring subtle -->
+    <circle cx="0" cy="0" r="34" fill="#07101a" stroke="#c09d06" stroke-width="4" opacity="0.18" />
+    <!-- diamond mark -->
+    <rect x="-18" y="-18" width="36" height="36" rx="6" transform="rotate(45)" fill="#d6b006" />
+    <!-- central dot -->
+    <circle cx="0" cy="0" r="5" fill="#07101a" />
   </g>
 </svg>
